@@ -276,3 +276,5 @@
 [W 21:38:38.381 NotebookApp] 405 OPTIONS / (52.183.38.23) 0.34ms referer=None
 [W 21:38:38.520 NotebookApp] 405 OPTIONS / (52.183.38.23) 0.31ms referer=None
 [I 06:00:44.656 NotebookApp] 302 GET / (40.74.82.162) 0.43ms
+[C 06:48:20.362 NotebookApp] received signal 15, stopping
+[I 06:48:20.362 NotebookApp] Shutting down kernels
