@@ -172,14 +172,21 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variance, storing your result in the running_mean and running_var   #
         # variables.                                                          #
         #######################################################################
-        sample_mean = np.mean(x, axis=0)
-        sample_var = np.mean((x - sample_mean)**2, axis=0)
-        norm_x = (x - sample_mean) / np.sqrt(sample_var + eps)
-        out = gamma * norm_x + beta
-        cache = norm_x, sample_mean, sample_var, gamma, beta, eps
         
-        running_mean = running_mean * momentum + (1 - momentum) * sample_mean
-        running_var = running_var * momentum + (1 - momentum) * sample_var
+        mu = np.mean(x, axis=0)
+        xsubmu = x - mu
+        var = np.mean(xsubmu**2, axis=0)
+        sqrtvar = np.sqrt(var + eps)
+        inv = 1.0 / sqrtvar
+        x_hat = xsubmu * inv
+        out = gamma * x_hat + beta
+        cache = x_hat, xsubmu, mu, var, sqrtvar, inv, gamma, beta, eps
+        
+        
+        
+        
+        running_mean = running_mean * momentum + (1 - momentum) * mu
+        running_var = running_var * momentum + (1 - momentum) * var
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -228,11 +235,28 @@ def batchnorm_backward(dout, cache):
     # results in the dx, dgamma, and dbeta variables.                         #
     ###########################################################################
     N = dout.shape[0]
-    x, sample_mean, sample_var, gamma, beta, eps = cache
-    dgamma = np.sum(x * dout, axis=0)
+    x_hat, xsubmu, mu, var, sqrtvar, inv, gamma, beta, eps = cache
+    dgamma = np.sum(x_hat * dout, axis=0)
     dbeta = np.sum(dout, axis=0)
-    dx = (dout - beta) / gamma
-    dx = dx * (N + 0.0) * np.sqrt(sample_var + eps) / ((N - 1.0) - x**2)
+    dx_hat = dout * gamma        
+    
+    ##
+    # x --------> xsubmu
+    #  \      /
+    #   \    /   \
+    #    \->xmu
+    dinv = np.sum(dx_hat * xsubmu, axis=0)
+    dsqrt = -1.0 / sqrtvar**2 * dinv
+    dsqmu = 0.5 / sqrtvar * dsqrt
+    dsq = 1.0 / N * np.ones(dout.shape) * dsqmu
+    dxsubmu2 = 2.0 * xsubmu * dsq
+    dxsubmu1 = dx_hat * inv
+    dxsubmu = dxsubmu1 + dxsubmu2
+    dmu = -np.sum(dxsubmu, axis=0)
+    dx1 = dxsubmu
+    dx2 = 1.0 / N * np.ones(dout.shape) * dmu
+    dx = dx1 + dx2
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
